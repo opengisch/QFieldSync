@@ -15,4 +15,4 @@ pushd qfieldsync
 make package VERSION=${TRAVIS_TAG}
 popd
 
-echo "./scripts/plugin_upload.py -u ${OSGEO_USERNAME} -w ${OSGEO_PASSWORD} qfieldsync/qfieldsync.zip"
+./scripts/plugin_upload.py -u "${OSGEO_USERNAME}" -w "${OSGEO_PASSWORD}" qfieldsync/qfieldsync.zip
