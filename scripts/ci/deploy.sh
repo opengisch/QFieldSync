@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+export TRAVIS_TAG=v0.8.16
 
 METADATA_VERSION=v$(grep -Po "(?<=^version=).*" qfieldsync/metadata.txt)
 
@@ -14,4 +15,4 @@ pushd qfieldsync
 make package VERSION=${TRAVIS_TAG}
 popd
 
-./scripts/plugin_upload.py -u ${OSGEO_USERNAME} -w ${OSGEO_PASSWORD} qfieldsync/qfieldsync.zip
+echo "./scripts/plugin_upload.py -u ${OSGEO_USERNAME} -w ${OSGEO_PASSWORD} qfieldsync/qfieldsync.zip"
