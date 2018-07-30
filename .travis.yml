@@ -36,7 +36,15 @@ jobs:
 
     - stage: deploy
       if: tag IS present
+      install:
+        - pip install -r requirements.txt
       script: plugin_ci/release/release.sh
+    - stage: deploy
+      if: branch = master
+      install:
+        - sudo apt-get install -y pyqt5-dev-tools
+        - pip install -r requirements.txt
+      script: scripts/ci/update-translations.sh
 
 env:
   global:
