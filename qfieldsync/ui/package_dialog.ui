@@ -217,7 +217,7 @@
       </sizepolicy>
      </property>
      <property name="text">
-      <string></string>
+      <string/>
      </property>
     </widget>
    </item>
@@ -240,9 +240,12 @@
       <item row="0" column="0">
        <widget class="QLabel" name="infoLabel">
         <property name="text">
-         <string>Some layers in this project have not yet been configured. &lt;a href=&quot;configuration&quot;&gt;Configure project now&lt;/a&gt;.</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Some issues have been found. &lt;a href=&quot;configuration&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#419cff;&quot;&gt;Configure project now&lt;/span&gt;&lt;/a&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
        </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QListWidget" name="infoListWidget"/>
       </item>
      </layout>
     </widget>
@@ -258,8 +261,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>20</x>
-     <y>20</y>
+     <x>26</x>
+     <y>622</y>
     </hint>
     <hint type="destinationlabel">
      <x>20</x>
@@ -274,8 +277,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>20</x>
-     <y>20</y>
+     <x>26</x>
+     <y>622</y>
     </hint>
     <hint type="destinationlabel">
      <x>20</x>

@@ -23,7 +23,6 @@
 import os
 
 from qfieldsync.core import (
-    LayerSource,
     ProjectConfiguration,
     OfflineConverter
 )
@@ -37,7 +36,8 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QLabel,
     QSizePolicy,
-    QDialog
+    QDialog,
+    QListWidgetItem
 )
 from qgis.core import (
     QgsProject,
@@ -49,6 +49,7 @@ from ..utils.file_utils import fileparts, open_folder
 from ..utils.qgis_utils import get_project_title
 from ..utils.qt_utils import make_folder_selector
 from qfieldsync.core.preferences import Preferences
+from qfieldsync.core.configuration_checkup import ConfigurationCheckup, QfieldSyncError
 
 DialogUi, _ = loadUiType(os.path.join(os.path.dirname(__file__), '../ui/package_dialog.ui'))
 
@@ -142,10 +143,17 @@ class PackageDialog(QDialog, DialogUi):
         """
         Show the info label if there are unconfigured layers
         """
-        self.infoGroupBox.hide()
-        for layer in list(self.project.mapLayers().values()):
-            if not LayerSource(layer).is_configured:
-                self.infoGroupBox.show()
+        errors = ConfigurationCheckup(self.project).errors()
+        self.infoGroupBox.setVisible(len(errors) > 0)
+        self.infoListWidget.clear()
+        for error in errors:
+            icon = QgsApplication.getThemeIcon('/mIconInfo.svg')
+            if error.error_level == Qgis.Warning:
+                icon = QgsApplication.getThemeIcon('/mIconWarning.svg')
+            elif error.error_level == Qgis.Critical:
+                icon = QgsApplication.getThemeIcon('/mIconCritical.svg')
+            item = QListWidgetItem(icon, error.error_message)
+            self.infoListWidget.addItem(item)
 
         project_configuration = ProjectConfiguration(self.project)
 

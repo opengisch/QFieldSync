@@ -85,6 +85,8 @@ class ProjectConfigurationDialog(QDialog, DialogUi):
         self.unsupportedLayersList = list()
         self.layersTable.setRowCount(0)
         self.layersTable.setSortingEnabled(False)
+
+        cbxs = []
         for layer in self.project.mapLayers().values():
             layer_source = LayerSource(layer)
             if not layer_source.is_supported:
@@ -99,9 +101,11 @@ class ProjectConfigurationDialog(QDialog, DialogUi):
             cbx = QComboBox()
             for action, description in layer_source.available_actions:
                 cbx.addItem(description)
-                cbx.setItemData(cbx.count() - 1, action)
+                cbx.setItemData(cbx.count() - 1, action, Qt.UserRole)
                 if layer_source.action == action:
                     cbx.setCurrentIndex(cbx.count() - 1)
+            cbx.currentIndexChanged.connect(lambda index, layer_source=layer_source: self.layer_action_changed(
+                layer_source, cbx.itemData(index)))
 
             self.layersTable.setCellWidget(count, 1, cbx)
 
@@ -176,6 +180,29 @@ class ProjectConfigurationDialog(QDialog, DialogUi):
             unsupported_layers_text += '<ul>'
 
             self.unsupportedLayers.setText(unsupported_layers_text)
+
+    def layer_action_changed(self, layer_source: LayerSource, action: str):
+        layer_source.action = action
+        layer_source.apply()
+        self.project.setDirty(True)
+
+        reload = False
+        for layer_id in layer_source.dependent_layers:
+            for i in range(self.layersTable.rowCount()):
+                item = self.layersTable.item(i, 0)
+                layer_source = item.data(Qt.UserRole)
+                if layer_source.layer.id() == layer_id:
+                    if layer_source.action == SyncAction.REMOVE:
+                        if layer_source.is_file:
+                            layer_source.action = SyncAction.NO_ACTION
+                        else:
+                            layer_source.action = SyncAction.OFFLINE
+                        layer_source.apply()
+                        reload = True
+                    break
+
+        if reload:
+            self.reloadProject()
 
     def onAccepted(self):
         """

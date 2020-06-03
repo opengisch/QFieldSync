@@ -1,3 +1,24 @@
+# -*- coding: utf-8 -*-
+
+"""
+/***************************************************************************
+ QFieldSync
+                              -------------------
+        begin                : 2020
+        copyright            : (C) 2020 by OPENGIS.ch
+        email                : info@opengis.ch
+ ***************************************************************************/
+
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+ """
+
 import os
 import shutil
 import json
@@ -67,7 +88,7 @@ class SyncAction(object):
 
 class LayerSource(object):
 
-    def __init__(self, layer):
+    def __init__(self, layer: QgsMapLayer):
         self.layer = layer
         self._action = None
         self._photo_naming = {}
@@ -167,6 +188,21 @@ class LayerSource(object):
     @property
     def name(self):
         return self.layer.name()
+
+    @property
+    def dependent_layers(self) -> [str]:
+        """
+        Returns a list of layer IDs of the layers required by the current layer
+        :return:
+        """
+        layers = []
+        # fields
+        if self.layer.type() == QgsMapLayer.VectorLayer:
+            for field in self.layer.fields():
+                ews = field.editorWidgetSetup()
+                if ews.type() == 'ValueRelation':
+                    layers.append(ews.config()['Layer'])
+        return layers
 
     def copy(self, target_path, copied_files, keep_existent=False):
         """
