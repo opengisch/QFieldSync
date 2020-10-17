@@ -213,6 +213,7 @@ class LayerSource(object):
         file_path = ''
         layer_name = ''
         subset = ''
+        suffix = ''
         
         if self.layer.dataProvider() is not None:
             metadata = QgsProviderRegistry.instance().providerMetadata(self.layer.dataProvider().name())
@@ -225,7 +226,10 @@ class LayerSource(object):
                 if "subset" in decoded:
                     subset = decoded["subset"]
         if file_path == '':
-            file_path = self.layer.source()
+            uri_parts = self.layer.source().split('|', 1)
+            file_path = uri_parts[0]
+            if len(uri_parts) > 1:
+                suffix = uri_parts[1]
 
         if os.path.isfile(file_path):
             source_path, file_name = os.path.split(file_path)
@@ -249,8 +253,13 @@ class LayerSource(object):
                     new_source = uri.uri()
                 else:
                     new_source = os.path.join(target_path, file_name)
-                    if layer_name != '':
-                        new_source = "{}|{}".format(new_source, layer_name)
+                    if suffix != '':
+                        new_source = "{}|{}".format(new_source, suffix)
+                    else:
+                        if layer_name != '':
+                            new_source = "{}|layername={}".format(new_source, layer_name)
+                        if subset != '':
+                            new_source = "{}|subset={}".format(new_source, layer_name)
 
             self._change_data_source(new_source)
         return copied_files
