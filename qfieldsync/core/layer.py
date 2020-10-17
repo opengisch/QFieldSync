@@ -212,6 +212,7 @@ class LayerSource(object):
 
         file_path = ''
         layer_name = ''
+        subset = ''
         
         if self.layer.dataProvider() is not None:
             metadata = QgsProviderRegistry.instance().providerMetadata(self.layer.dataProvider().name())
@@ -221,6 +222,8 @@ class LayerSource(object):
                     file_path = decoded["path"]
                 if "layerName" in decoded:
                     layer_name = decoded["layerName"]
+                if "subset" in decoded:
+                    subset = decoded["subset"]
         if file_path == '':
             file_path = self.layer.source()
 
@@ -237,7 +240,7 @@ class LayerSource(object):
             if Qgis.QGIS_VERSION_INT >= 31200 and self.layer.dataProvider() is not None:
                 metadata = QgsProviderRegistry.instance().providerMetadata(self.layer.dataProvider().name())
                 if metadata is not None:
-                    new_source = metadata.encodeUri({"path":os.path.join(target_path, file_name),"layerName":layer_name})
+                    new_source = metadata.encodeUri({"path":os.path.join(target_path, file_name),"layerName":layer_name,"subset":subset})
             if new_source == '':
                 if self.layer.dataProvider() and self.layer.dataProvider().name == "spatialite":
                     uri = QgsDataSourceUri()
