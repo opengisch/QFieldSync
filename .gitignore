@@ -167,3 +167,4 @@ fabric.properties
 qfield-sync.*.zip
 qfieldsync/resources_rc.py
 
+.vscode/**

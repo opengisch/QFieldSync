@@ -23,7 +23,7 @@ import os
 import shutil
 import tempfile
 
-from qfieldsync.core.offline_converter import OfflineConverter
+from qfieldsync.libqfieldsync import OfflineConverter
 from qfieldsync.tests.utilities import test_data_folder
 from qgis.core import Qgis, QgsProject, QgsRectangle, QgsOfflineEditing
 from qgis.testing import start_app, unittest

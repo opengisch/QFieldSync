@@ -25,6 +25,7 @@ from qgis.PyQt.QtWidgets import QDialog, QVBoxLayout, QDialogButtonBox
 
 from qfieldsync.gui.project_configuration_widget import ProjectConfigurationWidget
 
+
 class ProjectConfigurationDialog(QDialog):
     """
     Configuration dialog for QFieldSync on a particular project.

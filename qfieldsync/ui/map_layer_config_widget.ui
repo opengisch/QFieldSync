@@ -14,15 +14,8 @@
    <string>Form</string>
   </property>
   <layout class="QFormLayout" name="QFieldLayerSettingsPageLayout">
-   <item row="0" column="0">
-    <widget class="QLabel" name="layerActionLabel">
-     <property name="text">
-      <string>Layer Action</string>
-     </property>
-    </widget>
-   </item>
    <item row="0" column="1">
-    <widget class="QComboBox" name="layerActionComboBox">
+    <widget class="QComboBox" name="cloudLayerActionComboBox">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -31,7 +24,21 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="1">
+   <item row="0" column="0">
+    <widget class="QLabel" name="cloudLayerActionLabel">
+     <property name="text">
+      <string>Cloud Layer Action</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="cableLayerActionLabel">
+     <property name="text">
+      <string>Cable Layer Action</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
     <widget class="QCheckBox" name="isGeometryLockedCheckBox">
      <property name="toolTip">
       <string>When enabled, this option disables adding and deleting features, as well as modifying the geometries of existing features.</string>
@@ -40,6 +47,9 @@
       <string>Lock Geometries</string>
      </property>
     </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QComboBox" name="cableLayerActionComboBox"/>
    </item>
   </layout>
  </widget>

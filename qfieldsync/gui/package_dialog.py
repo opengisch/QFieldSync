@@ -22,11 +22,6 @@
 """
 import os
 
-from qfieldsync.core import (
-    LayerSource,
-    ProjectConfiguration,
-    OfflineConverter
-)
 from qfieldsync.gui.project_configuration_dialog import ProjectConfigurationDialog
 from qgis.PyQt.QtCore import (
     pyqtSlot,
@@ -36,6 +31,8 @@ from qgis.PyQt.QtGui import (
     QIcon
 )
 from qgis.PyQt.QtWidgets import (
+    QApplication,
+    QMessageBox,
     QDialogButtonBox,
     QPushButton,
     QLabel,
@@ -50,10 +47,12 @@ from qgis.core import (
     Qgis
 )
 from qgis.PyQt.uic import loadUiType
-from ..utils.file_utils import fileparts, open_folder
 from ..utils.qgis_utils import get_project_title
 from ..utils.qt_utils import make_folder_selector
 from qfieldsync.core.preferences import Preferences
+
+from qfieldsync.libqfieldsync.utils.file_utils import fileparts, open_folder
+from qfieldsync.libqfieldsync import (LayerSource, ProjectConfiguration, OfflineConverter)
 
 DialogUi, _ = loadUiType(os.path.join(os.path.dirname(__file__), '../ui/package_dialog.ui'))
 
@@ -119,6 +118,7 @@ class PackageDialog(QDialog, DialogUi):
         # progress connections
         offline_convertor.total_progress_updated.connect(self.update_total)
         offline_convertor.task_progress_updated.connect(self.update_task)
+        offline_convertor.warning.connect(lambda title, body: QMessageBox.warning(None, title, body))
 
         offline_convertor.convert()
         self.do_post_offline_convert_action()
@@ -186,6 +186,11 @@ class PackageDialog(QDialog, DialogUi):
 
     @pyqtSlot(int, int, str)
     def update_total(self, current, layer_count, message):
+        if current == layer_count and (current == 100 or current == 0):
+            QApplication.restoreOverrideCursor()
+        elif current == 0 and layer_count == 100:
+            QApplication.setOverrideCursor(Qt.WaitCursor)
+
         self.totalProgressBar.setMaximum(layer_count)
         self.totalProgressBar.setValue(current)
         self.statusLabel.setText(message)

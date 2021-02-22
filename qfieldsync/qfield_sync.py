@@ -21,9 +21,6 @@
  ***************************************************************************/
 """
 
-from qfieldsync.core import Preferences
-
-
 import os.path
 from qgis.PyQt.QtCore import (
     QTranslator,
@@ -32,7 +29,7 @@ from qgis.PyQt.QtCore import (
     Qt,
     QLocale
 )
-from qgis.PyQt.QtWidgets import QAction
+from qgis.PyQt.QtWidgets import QAction, QToolButton, QMenu
 from qgis.PyQt.QtGui import QIcon
 from qgis.core import Qgis, QgsApplication, QgsOfflineEditing, QgsProject
 
@@ -47,7 +44,10 @@ from qfieldsync.gui.synchronize_dialog import SynchronizeDialog
 from qfieldsync.gui.project_configuration_widget import ProjectConfigurationWidget
 from qfieldsync.gui.project_configuration_dialog import ProjectConfigurationDialog
 from qfieldsync.gui.map_layer_config_widget import MapLayerConfigWidgetFactory
-
+from qfieldsync.gui.cloud_projects_dialog import CloudProjectsDialog
+from qfieldsync.gui.cloud_browser_tree import DataItemProvider
+from qfieldsync.core.cloud_api import CloudNetworkAccessManager
+from qfieldsync.core import Preferences
 
 class QFieldSyncProjectPropertiesFactory(QgsOptionsWidgetFactory):
     """
@@ -125,6 +125,15 @@ class QFieldSync(object):
 
         # store warnings from last run
         self.last_action_warnings = []
+
+        self.network_manager = CloudNetworkAccessManager(self.iface.mainWindow())
+        self.network_manager.token_changed.connect(self.update_qfield_sync_toolbar_icon)
+        self.network_manager.login_success.connect(self.update_qfield_sync_toolbar_icon)
+        # TODO enable this and watch the world collapse
+        # QgsProject().homePathChanged.connect(self.update_qfield_sync_toolbar_icon)
+
+        self.data_item_provider = DataItemProvider(self.network_manager)
+        QgsApplication.instance().dataItemProviderRegistry().addProvider(self.data_item_provider)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -229,6 +238,26 @@ class QFieldSync(object):
             callback=self.show_synchronize_dialog,
             parent=self.iface.mainWindow())
 
+        actions = self.iface.pluginMenu().actions()
+        qfield_action = [action for action in actions if action.text() == self.menu][0]
+        qfield_action.menu().addSeparator()
+
+        self.cloud_projects_overview_action = self.add_action(
+            os.path.join(os.path.dirname(__file__), './resources/cloud.svg'),
+            text=self.tr('Projects Overview'),
+            callback=self.show_cloud_overview_dialog,
+            parent=self.iface.mainWindow(),
+            add_to_toolbar=False)
+
+        self.cloud_current_project_action = self.add_action(
+            os.path.join(os.path.dirname(__file__), './resources/cloud.svg'),
+            text=self.tr('Current Project Properties'),
+            callback=self.show_cloud_project_details_dialog,
+            parent=self.iface.mainWindow(),
+            add_to_toolbar=False)
+
+        qfield_action.menu().addSeparator()
+
         self.add_action(
             QIcon(os.path.join(os.path.dirname(__file__), './resources/project_properties.svg')),
             text=self.tr('Configure Current Project'),
@@ -236,17 +265,23 @@ class QFieldSync(object):
             parent=self.iface.mainWindow(),
         )
 
-        actions = self.iface.pluginMenu().actions()
-        for action in actions:
-            if action.text() == self.menu:
-                action.menu().addSeparator()
-
         self.add_action(
             QgsApplication.getThemeIcon("/mActionOptions.svg"),
             text=self.tr('Preferences'),
             callback=self.show_preferences_dialog,
             parent=self.iface.mainWindow(),
             add_to_toolbar=False)
+
+        
+        self.qfield_cloud_sync_btn = QToolButton(self.iface.mainWindow())
+        self.qfield_cloud_sync_btn.setMenu(QMenu())
+        self.qfield_cloud_sync_btn.setPopupMode(QToolButton.MenuButtonPopup)
+        self.qfield_cloud_sync_btn.setIcon(QIcon(os.path.join(os.path.dirname(__file__), './resources/cloud_off.svg')))
+        self.qfield_cloud_sync_btn.setToolTip('Synchronize with QFieldCloud')
+        self.qfield_cloud_sync_btn.clicked.connect(self.sync_qfieldcloud_project)
+        self.qfield_cloud_sync_btn.menu().addAction(self.cloud_projects_overview_action)
+        self.qfield_cloud_sync_btn.menu().addAction(self.cloud_current_project_action)
+        self.toolbar.addWidget(self.qfield_cloud_sync_btn)
 
         self.iface.registerMapLayerConfigWidgetFactory(self.mapLayerConfigWidgetFactory)
 
@@ -263,12 +298,12 @@ class QFieldSync(object):
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr('&QFieldSync'),
-                action)
+            self.iface.removePluginMenu(self.tr('&QFieldSync'), action)
             self.iface.removeToolBarIcon(action)
         # remove the toolbar
         del self.toolbar
+        QgsApplication.instance().dataItemProviderRegistry().removeProvider(self.data_item_provider)
+        self.data_item_provider = None
 
         self.iface.unregisterMapLayerConfigWidgetFactory(self.mapLayerConfigWidgetFactory)
 
@@ -284,7 +319,7 @@ class QFieldSync(object):
         Synchronize from QField
         """
         dlg = SynchronizeDialog(self.iface, self.offline_editing, self.iface.mainWindow())
-        dlg.exec_()
+        dlg.show()
 
     def show_package_dialog(self):
         """
@@ -307,7 +342,34 @@ class QFieldSync(object):
             self.iface.showProjectPropertiesDialog('QField')
         else:
             dlg = ProjectConfigurationDialog(self.iface.mainWindow())
-            dlg.exec_()
+            dlg.show()
+
+    def show_cloud_overview_dialog(self):
+        """
+        Show the QFieldCloud overview dialog.
+        """
+        dlg = CloudProjectsDialog(self.network_manager, self.iface.mainWindow())
+        dlg.show()
+
+    def show_cloud_project_details_dialog(self):
+        """
+        Show the QFieldCloud project details dialog.
+        """
+        currently_open_project = self.network_manager.projects_cache.currently_open_project
+        dlg = CloudProjectsDialog(self.network_manager, self.iface.mainWindow(), currently_open_project)
+        dlg.show_project_form()
+
+    def sync_qfieldcloud_project(self):
+        """Synchronize the current QFieldCloud project"""
+        currently_open_project = self.network_manager.projects_cache.currently_open_project
+
+        if currently_open_project is None or not self.network_manager.has_token():
+            self.show_cloud_overview_dialog()
+            return
+
+        dlg = CloudProjectsDialog(self.network_manager, self.iface.mainWindow(), project=currently_open_project)
+        dlg.sync()
+
 
     def action_start(self):
         self.clear_last_action_warnings()
@@ -339,3 +401,10 @@ class QFieldSync(object):
             self.push_action.setEnabled(False)
         else:
             self.push_action.setEnabled(True)
+
+
+    def update_qfield_sync_toolbar_icon(self):
+        if self.network_manager.has_token():
+            self.qfield_cloud_sync_btn.setIcon(QIcon(os.path.join(os.path.dirname(__file__), './resources/cloud.svg')))
+        else:
+            self.qfield_cloud_sync_btn.setIcon(QIcon(os.path.join(os.path.dirname(__file__), './resources/cloud_off.svg')))
